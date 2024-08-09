@@ -16,5 +16,8 @@ test_data = [
     (1, "detected13.wav"),
     (0, "not_detected21.wav"),
     (0, "not_detected25.wav"),
-    (0, "not_detected36.wav")
+    (0, "not_detected36.wav"),
+    (0, "not_detected_45.13.wav"),
+    (1, "detected45.06.wav"),
+    (1, "detected_45.17.wav"),
 ]

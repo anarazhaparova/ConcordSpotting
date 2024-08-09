@@ -54,3 +54,8 @@ def test_keyword_spotting(test_audio_path):
         f'Prediction on {os.path.basename(test_audio_path)}: '
         f'{"Keyword detected" if predicted_label == 1 else "No keyword detected"}')
     return predicted_label
+
+for filename in os.listdir("test_files"):
+    if filename.endswith('.wav'):
+        filepath = os.path.join("test_files", filename)
+        test_keyword_spotting(filepath)

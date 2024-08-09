@@ -59,7 +59,7 @@ class KeywordDataset(Dataset):
         elif mfcc.shape[2] > self.max_length:
             mfcc = mfcc[:, :, :self.max_length]
 
-        return mfcc.squeeze(0).transpose(0, 1), label
+        return mfcc.squeeze(0).transpose(0, 1), label, file_path
 
 
 test_dataset = KeywordDataset("positive_test", "negative_test", transform=transform)
@@ -102,7 +102,7 @@ def start_spotting(keyword_dir, background_dir):
         start_time = time.time()
         index = 0
         running_loss = 0.0
-        for waveforms, labels in dataloader:
+        for waveforms, labels, filepath in dataloader:
             index += 1
             process_count = index / data_count * total
             current_time = time.time()
@@ -136,9 +136,11 @@ def start_spotting(keyword_dir, background_dir):
     torch.save(model.state_dict(), spotting_model)
 
 
-def test_model(test_dataset, batch_size=32):
-    model.eval()  # Переводим модель в режим тестирования
-    dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+def test_model(test_dataset1, batch_size=32):
+    models = KeywordModel(input_size=n_mfcc)
+    models.load_state_dict(torch.load(spotting_model, weights_only=True))
+    models.eval()  # Переводим модель в режим тестирования
+    dataloader = DataLoader(test_dataset1, batch_size=batch_size, shuffle=False)
 
     correct = 0
     total = 0
@@ -148,8 +150,8 @@ def test_model(test_dataset, batch_size=32):
     headers = ["Predict background", "Predict keyword"]
 
     with torch.no_grad():  # Отключаем вычисление градиентов для тестирования
-        for waveforms, labels in dataloader:
-            outputs = model(waveforms)
+        for waveforms, labels, filepaths in dataloader:
+            outputs = models(waveforms)
             loss = criterion(outputs, labels)
             running_loss += loss.item()
 
@@ -160,6 +162,8 @@ def test_model(test_dataset, batch_size=32):
                 old_val = result_data[label][result + 1]
                 old_val += 1
                 result_data[label][result + 1] = old_val
+
+                print(f"{os.path.basename(filepaths[index])} - {result}")
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     print()

@@ -2,11 +2,9 @@ import argparse
 import os
 import random
 
-from tabulate import tabulate
-
 from augmenting import augment_audio
 from file_manipulating import merge_directories
-from new_spotting import start_spotting, KeywordDataset, transform, test_model, test_dataset
+from new_spotting import test_model, test_dataset, start_spotting
 from settings import *
 from sound_factory import get_max_sample_length, resample_audio_to_target_sr, load_audio, sampling_audio, change_volume
 from sound_factory import pad_or_trim, save_audio, add_white_noise_audio, shift_audio

@@ -1,5 +1,8 @@
 import os
+import sys
+import time
 
+import psutil
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -61,6 +64,7 @@ class KeywordSpottingDataset(Dataset):
 
 
 def start_spotting(dataset_path):
+    total = 50
     dataset = KeywordSpottingDataset(dataset_path)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
     model = SimpleCNN()
@@ -68,14 +72,29 @@ def start_spotting(dataset_path):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     num_epochs = 10
+    data_count = len(dataloader)
     print(f"Epoch stared")
+    process = psutil.Process(os.getpid())
     for epoch in range(num_epochs):
-        data_count = len(dataloader)
+        start_time = time.time()
         index = 0
         for mel_spec, label in dataloader:
             index += 1
-            if index % 4 == 0:
-                print("#", end="")
+            process_count = index / data_count * total
+            current_time = time.time()
+            elapsed_time = current_time - start_time
+            sys.stdout.write("\r")
+            hours, remainder = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            memory_info = process.memory_info().rss / (1024 * 1024)
+            sys.stdout.write(
+                f"Epoch {epoch + 1} --> Время: {int(minutes):02}:{int(seconds):02}, Память: {memory_info:.2f}MB")
+            sys.stdout.write("  |")
+            sys.stdout.write("#" * int(process_count))
+            sys.stdout.write(" " * (total - int(process_count)))
+            procent = 100 / total * process_count
+            sys.stdout.write(f"| {procent:.2f}%")
+            sys.stdout.flush()
             optimizer.zero_grad()
             # Убедитесь, что данные имеют правильную размерность
             if mel_spec.dim() == 3:
