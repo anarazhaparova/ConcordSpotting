@@ -11,7 +11,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchaudio.transforms import MFCC
 
-from settings import target_sample_rate, spotting_model, test_files_path, test_data
+from settings import target_sample_rate, spotting_model, test_files_path, test_data, positive_path, negative_path
 from sound_factory import load_audio
 
 # Определение трансформаций
@@ -98,7 +98,6 @@ def start_spotting(keyword_dir, background_dir):
         model.train()
         start_time = time.time()
         index = 0
-        model.train()
         running_loss = 0.0
         for waveforms, labels in dataloader:
             index += 1

@@ -12,7 +12,6 @@ from tabulate import tabulate
 
 
 def spotting():
-    path = concord_path
     start_spotting(positive_path, negative_path)
 
 
@@ -116,8 +115,6 @@ def check_audio():
 
 
 def start_test():
-
-
     result_data = [["Excepted background", 0, 0], ["Excepted keyword", 0, 0]]
     path = test_files_path
     headers = ["Predict background", "Predict keyword"]
@@ -145,6 +142,7 @@ if __name__ == "__main__":
                                                help=f"Генерирует дата сет ключевых слов")
     spotting_parser = subparsers.add_parser('spotting',
                                             help=f"Генерирует дата сет шумов")
+
     test_parser = subparsers.add_parser('test',
                                         help=f"Тестрирует модель на входных данных")
     merge_parser = subparsers.add_parser('merge',
