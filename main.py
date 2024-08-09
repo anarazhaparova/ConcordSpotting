@@ -3,24 +3,24 @@ import os
 import random
 
 from augmenting import augment_audio
+from new_spotting import start_spotting, detect_keyword, plot_mfcc
 from settings import *
-from sound_factory import get_max_sample_length, resample_audio_to_target_sr, load_audio, sampling_audio
+from sound_factory import get_max_sample_length, resample_audio_to_target_sr, load_audio, sampling_audio, change_volume
 from sound_factory import pad_or_trim, save_audio, add_white_noise_audio, shift_audio
-from spotting import start_spotting
-from testing import test_keyword_spotting
 from file_manipulating import merge_directories
+from tabulate import tabulate
 
 
 def spotting():
     path = concord_path
-    start_spotting(path)
+    start_spotting(positive_path, negative_path)
 
 
 def merge_pos_and_neg_dataset():
     merge_directories(positive_path, negative_path, concord_path)
 
 
-def generate_akylai_dataset():
+def generate_keyword_dataset():
     path = keyword_path
     output_path = positive_path
     sample_path = negative_path
@@ -32,18 +32,24 @@ def generate_akylai_dataset():
             waveform, sample_rate = load_audio(filepath)
             save_audio(waveform, os.path.join(output_path, filename))
 
-            for index in range(1, 10, 1):
-                noise_level = index/1000
+            for index in range(1, 11, 1):
+                noise_level = index / 1000
                 wn_waveform = add_white_noise_audio(waveform, noise_level)
                 save_audio(wn_waveform, os.path.join(output_path, f"white_noise_{noise_level}_" + filename))
                 shifted_waveform = shift_audio(waveform, noise_level)
                 save_audio(shifted_waveform, os.path.join(output_path, f"shifted_{noise_level}_" + filename))
+            for index in range(5, 20, 2):
+                volume = index / 10
+
+                if 9 > volume > 11:
+                    volumed_waveform = change_volume(waveform, volume)
+                    save_audio(volumed_waveform, os.path.join(output_path, f"volumed_{volume}_{filename}"))
 
             for index in range(400):
                 random_file = random.choice(sample_files)
                 augment_waveform = augment_audio(filepath, os.path.join(sample_path, random_file))
                 save_audio(augment_waveform,
-                           os.path.join(output_path, random_file.replace("incorrect_", "") + "_" + filename))
+                           os.path.join(output_path, f"{random_file}_{filename}"))
 
 
 def generate_sample():
@@ -54,6 +60,22 @@ def generate_sample():
         if filename.endswith('.wav'):
             filepath = os.path.join(path, filename)
             sampling_audio(filepath, num_samples, output_path)
+    for sample_name in os.listdir(output_path):
+        if sample_name.endswith('.wav'):
+            filepath = os.path.join(output_path, sample_name)
+            waveform, sample_rate = load_audio(filepath)
+            for index in range(1, 10, 1):
+                noise_level = index / 1000
+                wn_waveform = add_white_noise_audio(waveform, noise_level)
+                save_audio(wn_waveform, os.path.join(output_path, f"white_noise_{noise_level}_" + sample_name))
+                shifted_waveform = shift_audio(waveform, noise_level)
+                save_audio(shifted_waveform, os.path.join(output_path, f"shifted_{noise_level}_" + sample_name))
+            for index in range(5, 20, 2):
+                volume = index / 10
+
+                if 9 > volume > 11:
+                    volumed_waveform = change_volume(waveform, volume)
+                    save_audio(volumed_waveform, os.path.join(output_path, f"volumed_{volume}_{sample_name}"))
 
 
 def prepare_audio():
@@ -94,11 +116,19 @@ def check_audio():
 
 
 def start_test():
+
+
+    result_data = [["Excepted background", 0, 0], ["Excepted keyword", 0, 0]]
     path = test_files_path
-    for filename in os.listdir(path):
+    headers = ["Predict background", "Predict keyword"]
+    for label, filename in test_data:
         if filename.endswith('.wav'):
             filepath = os.path.join(path, filename)
-            test_keyword_spotting(filepath)
+            result = detect_keyword(filepath)
+            old_val = result_data[label][result+1]
+            old_val += 1
+            result_data[label][result+1] = old_val
+    print(tabulate(result_data, headers=headers, tablefmt="grid"))
 
 
 if __name__ == "__main__":
@@ -111,14 +141,14 @@ if __name__ == "__main__":
     check_parser = subparsers.add_parser('check', help=f"Проверяет звуки на стандарты")
     sampling_parser = subparsers.add_parser('sampling',
                                             help=f"Разделяет аудио дорожку на несколько файлов с равной длинной")
-    gen_dataset_parser = subparsers.add_parser('gen_dataset',
+    gen_dataset_parser = subparsers.add_parser('dataset',
                                                help=f"Генерирует дата сет ключевых слов")
     spotting_parser = subparsers.add_parser('spotting',
-                                            help=f"Генерирует дата сет ключевых слов")
+                                            help=f"Генерирует дата сет шумов")
     test_parser = subparsers.add_parser('test',
                                         help=f"Тестрирует модель на входных данных")
     merge_parser = subparsers.add_parser('merge',
-                                        help=f"Перемещает все датасеты в общую папку")
+                                         help=f"Перемещает все датасеты в общую папку")
 
     args = parser.parse_args()
 
@@ -131,8 +161,8 @@ if __name__ == "__main__":
     if args.command == 'sampling':
         generate_sample()
 
-    if args.command == 'gen_dataset':
-        generate_akylai_dataset()
+    if args.command == 'dataset':
+        generate_keyword_dataset()
 
     if args.command == 'spotting':
         spotting()

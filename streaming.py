@@ -39,7 +39,6 @@ def process_stream():
         if predicted.item() == 1:
             print("Keyword detected!")
             # Здесь можно добавить действие при обнаружении ключевого слова
-            break
 
 
 process_stream()

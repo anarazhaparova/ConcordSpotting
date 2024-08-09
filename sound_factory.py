@@ -13,10 +13,14 @@ from settings import *
 
 # class SoundFactory:
 def load_audio(audio_path):
-    sample_rate, waveform_np = wavfile.read(audio_path)
-    waveform = get_waveform_from_np(waveform_np)
+    try:
+        sample_rate, waveform_np = wavfile.read(audio_path)
+        waveform = get_waveform_from_np(waveform_np)
 
-    return waveform, sample_rate
+        return waveform, sample_rate
+    except Exception as e:
+        print(os.path.basename(audio_path))
+        print(e)
 
 
 def save_audio(waveform, audio_path):
