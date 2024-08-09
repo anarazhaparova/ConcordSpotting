@@ -62,6 +62,9 @@ class KeywordDataset(Dataset):
         return mfcc.squeeze(0).transpose(0, 1), label
 
 
+test_dataset = KeywordDataset("positive_test", "negative_test", transform=transform)
+
+
 class KeywordModel(nn.Module):
     def __init__(self, input_size, hidden_dim=128, output_dim=2):
         super(KeywordModel, self).__init__()
@@ -125,46 +128,12 @@ def start_spotting(keyword_dir, background_dir):
 
             running_loss += loss.item()
 
+        test_model(test_dataset)
         average_loss = running_loss / len(dataloader)
         print(f'\nEpoch {epoch + 1}/{num_epochs} done, Loss: {average_loss:.4f}')
 
     # Сохранение модели
     torch.save(model.state_dict(), spotting_model)
-
-
-def detect_keyword(audio_path, target_length=148):
-    model.eval()
-
-    # Загрузка аудиофайла
-    waveform, sample_rate = load_audio(audio_path)
-    waveform = waveform.unsqueeze(0)  # Добавляем размерность для batch_size
-
-    # Применение преобразования MFCC
-    waveform = transform(waveform)
-
-    # Проверяем размерность после MFCC
-    print(f"MFCC Shape: {waveform.shape}")
-
-    # Приведение MFCC к одной длине (дополнение или обрезка)
-    current_length = waveform.shape[-1]
-
-    if current_length < target_length:
-        pad_amount = target_length - current_length
-        waveform = torch.nn.functional.pad(waveform, (0, pad_amount))
-    elif current_length > target_length:
-        waveform = waveform[:, :, :target_length]
-
-    # Транспонирование для LSTM (sequence_length, input_size)
-    waveform = waveform.squeeze(1).transpose(1, 2)  # (sequence_length, input_size)
-
-    # Проверка размерности входа
-    if waveform.size(-1) != n_mfcc:
-        raise RuntimeError(f"Expected input size {n_mfcc}, but got {waveform.size(-1)}")
-
-    with torch.no_grad():
-        outputs = model(waveform)
-        _, predicted = torch.max(outputs, 1)
-        return predicted.item()
 
 
 def test_model(test_dataset, batch_size=32):
@@ -177,14 +146,6 @@ def test_model(test_dataset, batch_size=32):
 
     result_data = [["Excepted background", 0, 0], ["Excepted keyword", 0, 0]]
     headers = ["Predict background", "Predict keyword"]
-    # for label, filename in test_data:
-    #     if filename.endswith('.wav'):
-    #         filepath = os.path.join(path, filename)
-    #         result = detect_keyword(filepath)
-    #         old_val = result_data[label][result+1]
-    #         old_val += 1
-    #         result_data[label][result+1] = old_val
-    #
 
     with torch.no_grad():  # Отключаем вычисление градиентов для тестирования
         for waveforms, labels in dataloader:
@@ -193,8 +154,6 @@ def test_model(test_dataset, batch_size=32):
             running_loss += loss.item()
 
             _, predicted = torch.max(outputs, 1)
-            probabilities = torch.softmax(outputs, dim=1)
-            print(f"Probabilities: {probabilities}")
 
             for index, label in enumerate(labels):
                 result = predicted[index]
@@ -203,25 +162,13 @@ def test_model(test_dataset, batch_size=32):
                 result_data[label][result + 1] = old_val
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+    print()
     print(tabulate(result_data, headers=headers, tablefmt="grid"))
     accuracy = correct / total * 100
     average_loss = running_loss / len(dataloader)
 
     print(f'Test Accuracy: {accuracy:.2f}%, Average Loss: {average_loss:.4f}')
     return accuracy, average_loss
-
-def start_test():
-    result_data = [["Excepted background", 0, 0], ["Excepted keyword", 0, 0]]
-    path = "test_files"
-    headers = ["Predict background", "Predict keyword"]
-    for label, filename in test_data:
-        if filename.endswith('.wav'):
-            filepath = os.path.join(path, filename)
-            result = detect_keyword(filepath)
-            old_val = result_data[label][result + 1]
-            old_val += 1
-            result_data[label][result + 1] = old_val
-    print(tabulate(result_data, headers=headers, tablefmt="grid"))
 
 
 def plot_mfcc(mfcc, title='MFCC'):

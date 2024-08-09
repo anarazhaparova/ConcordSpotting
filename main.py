@@ -2,13 +2,14 @@ import argparse
 import os
 import random
 
+from tabulate import tabulate
+
 from augmenting import augment_audio
-from new_spotting import start_spotting, detect_keyword, plot_mfcc
+from file_manipulating import merge_directories
+from new_spotting import start_spotting, KeywordDataset, transform, test_model, test_dataset
 from settings import *
 from sound_factory import get_max_sample_length, resample_audio_to_target_sr, load_audio, sampling_audio, change_volume
 from sound_factory import pad_or_trim, save_audio, add_white_noise_audio, shift_audio
-from file_manipulating import merge_directories
-from tabulate import tabulate
 
 
 def spotting():
@@ -115,17 +116,7 @@ def check_audio():
 
 
 def start_test():
-    result_data = [["Excepted background", 0, 0], ["Excepted keyword", 0, 0]]
-    path = test_files_path
-    headers = ["Predict background", "Predict keyword"]
-    for label, filename in test_data:
-        if filename.endswith('.wav'):
-            filepath = os.path.join(path, filename)
-            result = detect_keyword(filepath)
-            old_val = result_data[label][result+1]
-            old_val += 1
-            result_data[label][result+1] = old_val
-    print(tabulate(result_data, headers=headers, tablefmt="grid"))
+    test_model(test_dataset)
 
 
 if __name__ == "__main__":
