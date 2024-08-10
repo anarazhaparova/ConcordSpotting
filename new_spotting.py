@@ -163,7 +163,8 @@ def test_model(test_dataset1, batch_size=32):
                 old_val += 1
                 result_data[label][result + 1] = old_val
 
-                print(f"{os.path.basename(filepaths[index])} - {result}")
+                if result != label:
+                    print(f"{os.path.basename(filepaths[index])} - Predict: {result}, Excepted: {label}")
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     print()

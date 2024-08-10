@@ -3,7 +3,9 @@ import pyaudio
 import torch
 from torchaudio.transforms import MelSpectrogram
 
-from settings import spotting_model
+from new_spotting import KeywordModel, n_mfcc
+from settings import spotting_model, positive_path
+from sound_factory import get_max_sample_length
 from spotting import SimpleCNN
 
 # Настройки PyAudio
